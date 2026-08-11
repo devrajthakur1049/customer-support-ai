@@ -1,157 +1,560 @@
 # Customer Support AI Assistant
 
-This is a small customer support chat app I built where an AI reads customer messages, classifies them, and replies using a fixed knowledge base — and if it's not confident (or the topic is something like refunds/account deletion that a human should really handle), it escalates instead of guessing.
+An AI-powered customer support assistant built with **React, Node.js/Express, Supabase, and OpenAI**.
 
-The main thing I cared about while building this: **never trust the AI blindly**. Everything it outputs gets validated before it's used, and if anything looks off, the safe default is always "escalate to a human" — not "hope for the best."
+The application reads customer messages, classifies them, generates a response using a predefined knowledge base, and escalates conversations to a human when the AI is uncertain or when the request requires human intervention.
 
-## How it works
+The core design principle is **safe AI behavior**: AI output is validated server-side, and when something is uncertain or invalid, the system defaults to **human escalation instead of guessing**.
 
-Basic flow when a customer sends a message:
+---
 
-1. Save the customer's message right away — even if the AI call fails later, we don't lose what they typed.
-2. Send the message (plus last 6 turns of history) to the AI provider along with the knowledge base.
-3. Check the AI's JSON response — is it valid JSON? Is the classification one of the 4 allowed values? Is confidence between 0-1? Is there an actual reply? If any of this fails, treat it as "must escalate."
-4. Save the AI's reply as a message.
-5. If it needs to be escalated, update the conversation and ping the n8n webhook (once — there's a check so we don't spam duplicate notifications).
+## 🚀 Features
 
+* Customer support chat interface
+* AI-based message classification
+* Four supported classifications:
+
+  * `general_question`
+  * `technical_issue`
+  * `billing`
+  * `urgent`
+* AI-generated customer responses
+* Confidence-score validation
+* Automatic human escalation
+* n8n webhook integration for escalation notifications
+* Slack notification workflow
+* OpenAI provider
+* Mock AI provider for local testing without an API key
+* Supabase/PostgreSQL persistence
+* Server-side AI response validation
+* Duplicate escalation prevention
+* Error handling and safe fallback behavior
+* Automated tests using Node.js built-in test runner
+
+---
+
+## 🏗️ How It Works
+
+When a customer sends a message:
+
+1. The customer message is saved immediately.
+2. The message and recent conversation history are sent to the AI provider.
+3. The AI classifies the request and generates a response.
+4. The backend validates the AI response:
+
+   * Valid JSON
+   * Valid classification
+   * Confidence between `0` and `1`
+   * Valid response text
+5. The AI response is saved.
+6. If the conversation requires human intervention, it is marked for escalation.
+7. The escalation service sends a notification to the configured n8n webhook.
+8. n8n can forward the notification to Slack.
+
+### Architecture
+
+```text
+React (Vite)
+      │
+      ▼
+Express API
+      │
+      ▼
+AI Service
+ ┌────┴─────┐
+ ▼          ▼
+OpenAI     Mock
+Provider   Provider
+      │
+      ▼
+Supabase / PostgreSQL
+      │
+      ▼
+Escalation Service
+      │
+      ▼
+n8n Webhook
+      │
+      ▼
+Slack
 ```
-React (Vite) → Express API → aiService (OpenAI or mock)
-                    ↓
-              Supabase (Postgres)
-                    ↓
-          escalationService → n8n webhook → Slack
-```
 
-## Stack
+---
 
-- Frontend: React + Vite + Tailwind
-- Backend: Node/Express
-- DB: Supabase
-- AI: OpenAI (`gpt-4o-mini`), but there's also a mock provider that kicks in automatically if there's no API key — so the whole thing still runs without needing to pay for anything
-- Automation: n8n for the Slack notification
-- Tests: just Node's built-in `node --test`, didn't want to pull in a whole test framework for this
+## 🛠️ Tech Stack
 
-## Folder structure
+### Frontend
 
-```
+* React
+* Vite
+* Tailwind CSS
+
+### Backend
+
+* Node.js
+* Express.js
+
+### Database
+
+* Supabase
+* PostgreSQL
+
+### AI
+
+* OpenAI
+* `gpt-4o-mini`
+* Mock provider for local development/testing
+
+### Automation
+
+* n8n
+* Slack webhook
+
+### Testing
+
+* Node.js built-in `node:test`
+
+---
+
+## 📁 Project Structure
+
+```text
 customer-support-ai/
-  client/            React frontend
-  server/
-    controllers/
-    routes/
-    services/
-      providers/       openaiProvider.js, mockProvider.js
-      aiService.js
-      escalationService.js
-    knowledgebase/
-    tests/
-  supabase/schema.sql
-  n8n/escalation-workflow.json
-  .env.example
+│
+├── client/
+│   ├── src/
+│   ├── package.json
+│   └── ...
+│
+├── server/
+│   ├── controllers/
+│   ├── routes/
+│   ├── services/
+│   │   ├── providers/
+│   │   │   ├── openaiProvider.js
+│   │   │   ├── mockProvider.js
+│   │   │   └── geminiProvider.js
+│   │   ├── aiService.js
+│   │   └── escalationService.js
+│   ├── knowledgebase/
+│   ├── tests/
+│   └── server.js
+│
+├── supabase/
+│   └── schema.sql
+│
+├── n8n/
+│   └── escalation-workflow.json
+│
+├── .env.example
+├── .gitignore
+└── README.md
 ```
 
-## Setting it up
+---
 
-**Supabase**
-1. New project on supabase.com
-2. Run `supabase/schema.sql` in the SQL editor
-3. Grab your Project URL + `service_role` key and put them in `server/.env`
+## ⚙️ Local Setup
 
-The service-role key stays server-side only (`server/services/supabaseClient.js`) — never gets sent to the browser.
+### 1. Clone the repository
 
-**Running locally**
 ```bash
-# backend
+git clone https://github.com/devrajthakur1049/customer-support-ai.git
+cd customer-support-ai
+```
+
+---
+
+### 2. Backend Setup
+
+```bash
 cd server
 npm install
-cp ../.env.example .env   # fill in your real values
-npm run dev                # localhost:3001
+```
 
-# frontend (new terminal)
+Create a `.env` file using the provided example:
+
+```bash
+cp ../.env.example .env
+```
+
+Then configure the required environment variables.
+
+Start the backend:
+
+```bash
+npm run dev
+```
+
+Backend:
+
+```text
+http://localhost:3001
+```
+
+---
+
+### 3. Frontend Setup
+
+Open a second terminal:
+
+```bash
 cd client
 npm install
-echo "VITE_API_BASE_URL=http://localhost:3001/api" > .env
-npm run dev                # localhost:5173
 ```
 
-**n8n**
-1. Run it locally with `npx n8n` or use n8n Cloud
-2. Import `n8n/escalation-workflow.json`
-3. Set `SLACK_WEBHOOK_URL` in your n8n env (or swap the HTTP node for any other endpoint — email, Discord, whatever)
-4. Activate it, copy the production webhook URL into `N8N_ESCALATION_WEBHOOK_URL`
+Create the frontend environment file:
 
-The n8n workflow itself is simple: webhook comes in → check if `conversation_id` exists → if yes, hit Slack + respond 200; if no, respond 400.
+```bash
+echo "VITE_API_BASE_URL=http://localhost:3001/api" > .env
+```
 
-## Env vars
+Start the frontend:
 
-Check `.env.example` — basically Supabase creds, `AI_PROVIDER`/`OPENAI_API_KEY`/`OPENAI_MODEL`, `CONFIDENCE_THRESHOLD`, and `N8N_ESCALATION_WEBHOOK_URL`. `VITE_API_BASE_URL` is the only one that's safe on the frontend since it's not a secret.
+```bash
+npm run dev
+```
 
-## Why validation matters here
+Frontend:
 
-I didn't want a situation where the model says `"should_escalate": false` with fake high confidence and something sensitive slips through. So `aiService.js` re-checks the confidence threshold server-side (default 0.70, from `CONFIDENCE_THRESHOLD`) no matter what the model itself reports. Same logic for `classification` — has to be one of `general_question | technical_issue | billing | urgent`, anything else gets rejected.
+```text
+http://localhost:5173
+```
 
-Escalation happens if **any** of these are true:
-- AI itself says `should_escalate: true`
-- confidence is below the threshold
-- it's classified `urgent`
-- it touches refunds/duplicate charges/account deletion (hardcoded into the prompt/mock rules — these should basically always go to a human)
-- the AI call fails outright
-- the output fails validation
+---
 
-Basically: when in doubt, escalate. I'd rather have a few unnecessary escalations than let a broken AI response reach a customer.
+## 🗄️ Supabase Setup
 
-## Error handling, briefly
+1. Create a Supabase project.
+2. Open the Supabase SQL Editor.
+3. Run:
 
-- If the LLM call fails → message is already saved, conversation gets escalated with a generic reason, app doesn't crash
-- Bad/invalid AI JSON → caught, escalated
-- DB failure → 502, no stack traces or secrets leaked to the client
-- Duplicate escalation → `notifyEscalationOnce` checks `escalation_notified` before sending, so Slack doesn't get spammed
-- Empty customer message → rejected with 400 before it even touches the AI or DB
+```text
+supabase/schema.sql
+```
 
-## Testing
+4. Add the Supabase project URL and server-side credentials to `server/.env`.
+
+The Supabase service-role key must remain **server-side only** and must never be exposed to the frontend.
+
+---
+
+## 🔐 Environment Variables
+
+Use `.env.example` as the reference.
+
+Typical backend variables include:
+
+```text
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+
+AI_PROVIDER=
+OPENAI_API_KEY=
+OPENAI_MODEL=
+
+GEMINI_API_KEY=
+
+CONFIDENCE_THRESHOLD=
+
+N8N_ESCALATION_WEBHOOK_URL=
+```
+
+Frontend:
+
+```text
+VITE_API_BASE_URL=http://localhost:3001/api
+```
+
+### Security
+
+Do **not** commit:
+
+```text
+.env
+node_modules/
+```
+
+API keys and Supabase service-role credentials should never be uploaded to GitHub.
+
+---
+
+## 🤖 AI Classification
+
+The system supports four classifications:
+
+| Classification     | Example                            |
+| ------------------ | ---------------------------------- |
+| `general_question` | "What are your business hours?"    |
+| `technical_issue`  | "My dashboard is not loading."     |
+| `billing`          | "I was charged twice."             |
+| `urgent`           | "My account has been compromised." |
+
+The backend validates the classification before using it.
+
+---
+
+## 🧑‍💼 Human Escalation
+
+A conversation is escalated when one or more of the following conditions occur:
+
+* AI explicitly requests escalation
+* AI confidence is below the configured threshold
+* Classification is `urgent`
+* Request involves refunds or duplicate charges
+* Request involves account deletion
+* AI provider fails
+* AI response is invalid
+* AI response fails server-side validation
+
+The default confidence threshold is:
+
+```text
+0.70
+```
+
+The threshold can be changed using:
+
+```text
+CONFIDENCE_THRESHOLD
+```
+
+Duplicate escalation notifications are prevented using an escalation notification check.
+
+---
+
+## 🔔 n8n Integration
+
+The escalation workflow follows this flow:
+
+```text
+Application
+    ↓
+n8n Webhook
+    ↓
+Check conversation_id
+    ↓
+Slack Notification
+    ↓
+HTTP Response
+```
+
+To configure it:
+
+1. Run n8n locally using:
+
+```bash
+npx n8n
+```
+
+or use n8n Cloud.
+
+2. Import:
+
+```text
+n8n/escalation-workflow.json
+```
+
+3. Configure the Slack webhook.
+4. Activate the workflow.
+5. Add the production webhook URL to:
+
+```text
+N8N_ESCALATION_WEBHOOK_URL
+```
+
+---
+
+## 🧪 Testing
+
+The project includes tests using Node.js's built-in test runner.
+
+From the backend directory:
 
 ```bash
 cd server
 npm install
+```
+
+Run tests using the mock provider:
+
+```bash
 AI_PROVIDER=mock npm test
 ```
 
-This runs against the mock provider so you don't need any real API keys or a live Supabase project to see it work. Covers the main scenarios from the spec (valid response, invalid JSON, low confidence, urgent classification, refund/deletion keywords, API failure, etc.)
+The mock provider allows testing without requiring a real OpenAI API key.
 
-To poke at the actual HTTP layer:
+### Tested Scenarios
+
+* Valid AI response
+* Invalid JSON
+* Low-confidence response
+* Urgent classification
+* Refund-related requests
+* Account deletion requests
+* AI provider failure
+* Escalation behavior
+* Response validation
+
+---
+
+## 🔍 Manual Test Scenarios
+
+### General Question
+
+```text
+What are your business hours?
+```
+
+Expected:
+
+```text
+general_question
+```
+
+### Technical Issue
+
+```text
+My dashboard is not loading and shows a blank screen.
+```
+
+Expected:
+
+```text
+technical_issue
+```
+
+### Billing
+
+```text
+I was charged twice for the same subscription.
+```
+
+Expected:
+
+```text
+billing
+```
+
+### Urgent
+
+```text
+My account has been compromised and I need immediate help.
+```
+
+Expected:
+
+```text
+urgent
+```
+
+Urgent and other high-risk cases should trigger the human escalation flow.
+
+---
+
+## 🌐 API Example
+
+Create a conversation:
+
 ```bash
-npm run dev
 curl -X POST http://localhost:3001/api/conversations \
   -H "Content-Type: application/json" \
   -d '{"name":"Jane","email":"jane@example.com"}'
 ```
-(This one needs a real Supabase project connected, or you'll get a 502.)
 
-## Some notes / things I decided along the way
+The HTTP layer requires a properly configured backend and Supabase project.
 
-- Went with 0.70 as the confidence threshold — felt like a reasonable middle ground, not in the spec as a hard number so I picked something sane.
-- No auth system. Conversations are just tied to an email, created on the fly. Cutting this was a conscious call to keep scope manageable — obviously not production-ready without it.
-- `urgent` always escalates no matter what confidence the model reports — didn't want a model being "confident" about something urgent to skip the human.
-- Message roles include `human_agent` and `system` even though the current UI only uses `customer`/`ai` — left them in the schema for whenever a proper agent dashboard gets built.
-- No API key? App still runs, just falls back to the mock provider instead of refusing to start. Made local dev/testing way less annoying.
-- The Slack node in n8n is just a placeholder — swap the URL for literally any webhook-accepting endpoint and it still works.
+---
 
-## What's not here / known gaps
+## 🛡️ Error Handling
 
-- No auth — anyone with a conversation ID can read/post to it right now
-- No dashboard for human agents to actually reply through the app (they just get notified)
-- Mock provider is just keyword matching, not a real model — good enough for testing, not for judging real accuracy
-- Knowledge base is a plain string, not RAG/embeddings — fine for a handful of facts, won't scale
-- No rate limiting, no pagination on messages
-- Didn't have outbound network access to test live Supabase/OpenAI/n8n end-to-end in this environment — tested through the mock provider, unit tests, and local HTTP calls instead
+The application is designed to fail safely.
 
-## If I had another week
+* LLM failure → message remains saved and conversation can be escalated
+* Invalid AI JSON → response rejected and escalation triggered
+* Invalid classification → response rejected
+* Low confidence → escalation
+* Database failure → controlled API error
+* Duplicate escalation → notification is not sent repeatedly
+* Empty customer message → rejected with `400`
+* Secrets → never returned to the frontend
 
-- Build the actual agent dashboard so escalations can be replied to, not just flagged
-- Real auth (customer accounts + agent roles)
-- Better logging/observability — right now if something breaks in prod I'd be flying blind
-- Some kind of labeled eval set to actually measure classification accuracy over time instead of just vibes
-- Move the knowledge base to RAG once it needs to grow past a few paragraphs
-- Rate limiting on the public endpoint
-- More integration tests against a real test Supabase project + some E2E tests for the React side
-- Streaming responses instead of the current request/response back-and-forth
+---
+
+## 📸 Screenshots
+
+Screenshots of the working application can be added here.
+
+Suggested screenshots:
+
+1. Customer support chat interface
+2. General question response
+3. Technical issue classification
+4. Billing/urgent escalation
+5. Supabase conversation/message data
+6. n8n/Slack escalation notification
+
+Example:
+
+```text
+screenshots/
+├── chat-interface.png
+├── billing-escalation.png
+├── urgent-escalation.png
+└── n8n-workflow.png
+```
+
+---
+
+## ⚠️ Known Limitations
+
+This project is intended as a technical challenge/demo rather than a production-ready support platform.
+
+Current limitations include:
+
+* No authentication system
+* No dedicated human-agent dashboard
+* Mock provider uses keyword matching
+* Knowledge base is a plain text source rather than RAG
+* No rate limiting
+* No message pagination
+* No production observability system
+* Live third-party end-to-end testing depends on external services
+
+---
+
+## 🔮 Future Improvements
+
+With additional development time, the following improvements could be added:
+
+* Human-agent dashboard
+* Customer and agent authentication
+* Role-based access control
+* Better logging and observability
+* Automated classification evaluation
+* RAG-based knowledge retrieval
+* Rate limiting
+* Integration tests against a dedicated Supabase test project
+* End-to-end frontend tests
+* Streaming AI responses
+
+---
+
+## 🎯 Design Principle
+
+The most important design decision in this project is:
+
+> **When in doubt, escalate instead of guessing.**
+
+The AI is treated as an assistant rather than an unquestioned source of truth. Its output is validated by the backend before being used, and uncertain or sensitive situations are routed toward human intervention.
+
+---
+
+## 👨‍💻 Author
+
+**Devraj Thakur**
+
+GitHub:
+https://github.com/devrajthakur1049
+
+LinkedIn:
+https://www.linkedin.com/in/devraj-thakur-847a6a252/

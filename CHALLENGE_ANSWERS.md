@@ -62,3 +62,24 @@ I tested the following scenarios:
 
 The AI classification, response flow, and escalation behavior are working as expected.
 git init
+
+
+1. General Question
+
+What are your business hours?
+
+2. Technical Issue
+
+My dashboard is not loading and shows a blank screen.
+
+3. Billing Issue
+
+I was charged twice for the same subscription.
+
+4. Urgent Issue
+
+My account has been compromised and I need immediate help.
+
+5. Human Handoff
+
+I want a refund for a duplicate charge on my account.
